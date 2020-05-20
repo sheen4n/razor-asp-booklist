@@ -1,0 +1,150 @@
+﻿@page
+@using System.Linq
+@using Microsoft.EntityFrameworkCore.Query.Internal
+@model BookListRazor.Pages.BookList.IndexModel
+@{
+    ViewData["Title"] = "Index";
+}
+
+<br />
+
+<div class="container row p-0 m-0">
+    <div class="col-9">
+        <h2 class="text-info">Book List</h2>
+    </div>
+
+    <div class="col-3">
+        <a asp-page="Upsert" class="btn btn-info form-control text-white">Create New Book</a>
+    </div>
+
+
+    <div class="col-12 border p-3 mt-3">
+        <form method="post">
+            @if (Model.Books.Count() > 0)
+            {
+                <table class="table table-striped border">
+                    <tr class="table-secondary">
+                        <th>
+                            <label>Name</label>
+                        </th>
+                        <th>
+                            <label>Author</label>
+                        </th>
+                        <th>
+                            <label>ISBN</label>
+                        </th>
+                        <th>
+
+                        </th>
+                    </tr>
+
+                    @foreach (var book in Model.Books)
+                    {
+                        <tr>
+                            <td>
+                                @book.Name
+                            </td>
+                            <td>
+                                @book.Author
+                            </td>
+                            <td>
+                                @book.ISBN
+                            </td>
+                            <td>
+                                <button onclick="return confirm('Are you sure you want to delete?')" class="btn btn-sm btn-danger" asp-page-handler="Delete" asp-route-id="@book.Id">Delete</button>
+                                <a asp-page="Upsert" asp-route-id="@book.Id" class="btn btn-success btn-sm text-white">Edit</a>
+                            </td>
+                        </tr>
+                    }
+                </table>
+            }
+            else
+            { <p>No Books Available</p>}
+
+        </form>
+    </div>
+
+    <div class="col-12" style="text-align:center">
+        <br />
+        <span class="h3 text-info">OR</span>
+        <br /><br />
+    </div>
+    <div class="col-12 border p-3">
+
+        <table id="books" class="table table-striped table-bordered" style="width:100%">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Author</th>
+                    <th>ISBN</th>
+                    <th></th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+@section scripts{
+    <script>
+        $(document).ready(function () {
+            var table = $("#books").DataTable({
+                ajax: {
+                    url: "/api/books",
+                    dataSrc: ""
+                },
+                columns: [
+                    {
+                        data: "name", width: "20%"
+                    },
+                    {
+                        data: "author", width: "20%"
+                    },
+                    {
+                        data: "isbn", width: "30%"
+                    },
+                    {
+                        data: "id",
+                        render: function (data) {
+                            return `<button class='btn js-delete btn-sm btn-danger' data-book-id=${data}>Delete</button>
+                                        <a class='btn btn-success btn-sm text-white' href='/BookList/edit?id=${data}'>Edit</a>`;
+                        },
+                        width: "30%"
+                    }
+                ],
+                language: {
+                    "emptyTable": "No data found"
+                },
+                width: "100%"
+            });
+
+            $("#books").on("click",
+                ".js-delete",
+                function () {
+                    var button = $(this);
+
+                    swal({
+                        title: "Are you sure?",
+                        text: "Once deleted, you will not be able to recover",
+                        icon: "warning",
+                        buttons: true,
+                        dangerMode: true
+                    })
+                        .then((willDelete) => {
+                            if (willDelete) {
+                                $.ajax({
+                                    url: "/api/books/" + button.attr("data-book-id"),
+                                    method: "DELETE",
+                                    success: function () {
+                                        table.row(button.parents("tr")).remove().draw();
+                                        toastr.success("Successfully Deleted Book");
+                                    },
+                                    error: function () {
+                                        toastr.error("Error Deleting Book");
+                                    }
+                                });
+                            }
+                        });
+                });
+        });
+    </script>
+}
